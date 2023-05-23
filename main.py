@@ -1,25 +1,23 @@
-# nie działa
-
 import numpy as np
 
 def optimal_uniform_quantizer(samples, levels):
-    # Initialization
+    # Inicjalizacja punktów kwantyzacji
     min_val = min(samples)
     max_val = max(samples)
-    step_size = (max_val - min_val) / levels
+    quantization_points = np.linspace(min_val, max_val, levels)
 
-    quantization_points = np.linspace(min_val + step_size/2, max_val - step_size/2, levels)
-
+    # Iteracyjne aktualizowanie punktów kwantyzacji
     while True:
-        # Quantize samples based on current quantization points
-        quantized_samples = np.round((samples - min_val) / step_size) * step_size + min_val
+        # Kwantyzacja próbek
+        quantized_samples = np.zeros_like(samples)
+        for i in range(len(samples)):
+            quantized_samples[i] = quantization_points[np.argmin(np.abs(samples[i] - quantization_points))]
 
-        # Update quantization points based on the mean values of the samples
+        # Aktualizacja punktów kwantyzacji
         updated_points = np.zeros(levels)
         counts = np.zeros(levels)
-
         for i in range(len(samples)):
-            index = int((samples[i] - min_val) // step_size)  # Corrected index calculation
+            index = np.argmin(np.abs(samples[i] - quantization_points))
             updated_points[index] += samples[i]
             counts[index] += 1
 
@@ -27,21 +25,30 @@ def optimal_uniform_quantizer(samples, levels):
             if counts[i] > 0:
                 quantization_points[i] = updated_points[i] / counts[i]
 
-        if np.allclose(quantization_points, updated_points / counts):
+        if np.allclose(quantized_samples, samples):
             break
 
     return quantization_points
 
-# Example data
+# Dane wejściowe
 samples = np.array([1.1, 3.2, -5.5, 4.2, -5.5, 0, -0.7])
 levels = 10
 
+# Znalezienie optymalnego kwantyzatora
 quantizer = optimal_uniform_quantizer(samples, levels)
 
-print("Quantization points:")
-print(quantizer)
+# Kwantyzacja próbek za pomocą optymalnego kwantyzatora
+quantized_samples = np.zeros_like(samples)
+for i in range(len(samples)):
+    quantized_samples[i] = quantizer[np.argmin(np.abs(samples[i] - quantizer))]
 
-quantized_samples = np.round((samples - min(samples)) / ((max(samples) - min(samples)) / levels)) * ((max(samples) - min(samples)) / levels) + min(samples)
+# Obliczenie błędu kwantyzacji (MSE)
 mse = np.mean((samples - quantized_samples) ** 2)
-print("Quantization error (MSE):")
-print(mse)
+
+# Wyświetlenie wyników
+print("Optymalny kwantyzator jednostajny:")
+print("Próbki kwantyzowane:")
+print(quantized_samples)
+print("Punkty kwantyzacji:")
+print(quantizer)
+print("Błąd kwantyzacji (MSE):", mse)
